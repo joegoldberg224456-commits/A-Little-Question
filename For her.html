@@ -1,0 +1,531 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>A Little Surprise 💗</title>
+
+<style>
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  min-height: 100vh;
+  font-family: Arial, sans-serif;
+  background: linear-gradient(135deg, #ffd6e7, #e5d5ff, #cceaff);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  overflow: hidden;
+  padding: 15px;
+}
+
+.heart {
+  position: fixed;
+  bottom: -30px;
+  font-size: 20px;
+  opacity: .5;
+  animation: float 8s linear infinite;
+  pointer-events: none;
+  z-index: 0;
+}
+
+@keyframes float {
+  to {
+    transform: translateY(-110vh) rotate(360deg);
+    opacity: 0;
+  }
+}
+
+.card {
+  width: 100%;
+  max-width: 430px;
+  background: rgba(255,255,255,.65);
+  backdrop-filter: blur(18px);
+  -webkit-backdrop-filter: blur(18px);
+  border: 1px solid rgba(255,255,255,.8);
+  border-radius: 28px;
+  padding: 35px 22px;
+  text-align: center;
+  box-shadow: 0 15px 45px rgba(100,70,140,.15);
+  position: relative;
+  z-index: 2;
+  overflow: hidden;
+}
+
+h1 {
+  color: #a34d83;
+  font-size: 27px;
+  margin-bottom: 15px;
+  overflow-wrap: anywhere;
+}
+
+p {
+  color: #765a83;
+  line-height: 1.6;
+  margin-bottom: 20px;
+}
+
+input {
+  width: 100%;
+  padding: 14px;
+  border: 1px solid #e8b9d8;
+  border-radius: 12px;
+  outline: none;
+  margin-bottom: 14px;
+  background: rgba(255,255,255,.9);
+  font-size: 15px;
+}
+
+button {
+  border: none;
+  padding: 13px 25px;
+  border-radius: 30px;
+  font-size: 16px;
+  font-weight: bold;
+  cursor: pointer;
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.primary {
+  background: #e987bd;
+  color: white;
+  box-shadow: 0 5px 15px #e987bd55;
+}
+
+#shareBox {
+  display: none;
+  margin-top: 20px;
+  overflow-wrap: anywhere;
+}
+
+#shareLink {
+  background: white;
+  padding: 12px;
+  border-radius: 10px;
+  color: #8b5480;
+  font-size: 13px;
+  margin: 10px 0;
+  overflow-wrap: anywhere;
+}
+
+#questionScreen,
+#successScreen {
+  display: none;
+}
+
+#sender {
+  font-size: 14px;
+  color: #aa76a0;
+  margin-bottom: 12px;
+  overflow-wrap: anywhere;
+}
+
+/*
+  The button area is split into two safe zones:
+  YES stays in the left zone.
+  NO can move only inside the right zone.
+*/
+.buttons {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  min-height: 124px;
+  position: relative;
+  margin-top: 8px;
+}
+
+.yes-zone {
+  min-width: 0;
+  min-height: 110px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.no-zone {
+  min-width: 0;
+  width: 100%;
+  height: 110px;
+  position: relative;
+  overflow: hidden;
+  border-radius: 18px;
+  contain: layout paint;
+}
+
+#yesBtn {
+  background: #e987bd;
+  color: white;
+  position: relative;
+  z-index: 2;
+  white-space: nowrap;
+  padding: 13px 22px;
+}
+
+#noBtn {
+  background: #aaa1b8;
+  color: white;
+  position: absolute;
+  z-index: 3;
+  white-space: nowrap;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  padding: 13px 22px;
+  max-width: calc(100% - 8px);
+  transition: left .16s ease, top .16s ease;
+}
+
+#messageBubble {
+  color: #a34d83;
+  font-weight: bold;
+  min-height: 25px;
+  margin: 12px 0;
+  position: relative;
+  z-index: 1;
+  overflow-wrap: anywhere;
+}
+
+#successScreen h1 {
+  font-size: 32px;
+}
+
+#successScreen p {
+  margin-bottom: 20px;
+}
+
+.small {
+  font-size: 12px;
+  opacity: .7;
+}
+
+@media (max-width: 360px) {
+  .card {
+    padding: 28px 15px;
+  }
+
+  .buttons {
+    gap: 6px;
+  }
+
+  #yesBtn,
+  #noBtn {
+    padding: 12px 15px;
+    font-size: 14px;
+  }
+
+  .no-zone {
+    height: 105px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .heart {
+    animation: none;
+    display: none;
+  }
+
+  #noBtn {
+    transition: none;
+  }
+}
+</style>
+</head>
+
+<body>
+
+<div class="card" id="mainCard">
+
+  <!-- CREATOR SCREEN -->
+  <section id="setupScreen">
+
+    <h1>Make a little surprise 💗</h1>
+
+    <p>Create a cute question for someone special!</p>
+
+    <input
+      id="senderInput"
+      placeholder="Your name (optional)"
+      autocomplete="name"
+    >
+
+    <input
+      id="questionInput"
+      placeholder="Write your question here..."
+      maxlength="180"
+    >
+
+    <button class="primary" onclick="createShareLink()">
+      Generate Link 💌
+    </button>
+
+    <div id="shareBox">
+      <p>Your link is ready! ✨</p>
+
+      <div id="shareLink"></div>
+
+      <button class="primary" onclick="copyLink()">
+        Copy Link 📋
+      </button>
+
+      <p class="small">Share this link with your person.</p>
+    </div>
+
+  </section>
+
+  <!-- QUESTION SCREEN -->
+  <section id="questionScreen">
+
+    <div id="sender"></div>
+
+    <h1 id="questionText">Will you say yes? 💗</h1>
+
+    <p>Choose wisely... hehe 🥺</p>
+
+    <div id="messageBubble" aria-live="polite"></div>
+
+    <div class="buttons" id="buttonArea">
+
+      <div class="yes-zone">
+        <button id="yesBtn" onclick="sayYes()">
+          YES 💗
+        </button>
+      </div>
+
+      <div class="no-zone" id="noZone">
+        <button id="noBtn" type="button" onclick="dodgeNo()">
+          NO 🙃
+        </button>
+      </div>
+
+    </div>
+
+  </section>
+
+  <!-- SUCCESS SCREEN -->
+  <section id="successScreen">
+
+    <h1>Thanks KHUSHI! 💗</h1>
+
+    <p>You just made someone's day! 🥹</p>
+
+    <div style="font-size:55px">
+      💐💗✨
+    </div>
+
+  </section>
+
+</div>
+
+<script>
+"use strict";
+
+const params = new URLSearchParams(window.location.search);
+
+const question = params.get("q");
+const sender = params.get("from");
+
+const setupScreen = document.getElementById("setupScreen");
+const questionScreen = document.getElementById("questionScreen");
+const successScreen = document.getElementById("successScreen");
+
+const noBtn = document.getElementById("noBtn");
+const noZone = document.getElementById("noZone");
+const bubble = document.getElementById("messageBubble");
+
+let clickCount = 0;
+let noButtonMoved = false;
+
+const messages = [
+  "Ek baar acche se socho! 🥺",
+  "Zyada time nahi lagega! 😭",
+  "Paise main de dunga! 💸",
+  "Please yaar! 🥹",
+  "Itna bhi kya gussa? 😭",
+  "NO button bhi dukhi hai! 💔",
+  "Last chance soch lo! 👀",
+  "Ab toh maan jao! 😭"
+];
+
+// CREATOR MODE
+
+function createShareLink() {
+  const q = document.getElementById("questionInput").value.trim();
+  const from = document.getElementById("senderInput").value.trim();
+
+  if (!q) {
+    alert("Pehle apna question likho! 💗");
+    return;
+  }
+
+  const url = new URL(
+    window.location.origin + window.location.pathname
+  );
+
+  url.searchParams.set("q", q);
+
+  if (from) {
+    url.searchParams.set("from", from);
+  }
+
+  document.getElementById("shareLink").textContent = url.href;
+  document.getElementById("shareBox").style.display = "block";
+}
+
+// COPY LINK
+
+async function copyLink() {
+  const link = document.getElementById("shareLink").textContent;
+
+  try {
+    if (navigator.clipboard && window.isSecureContext) {
+      await navigator.clipboard.writeText(link);
+      alert("Link copied! 💗");
+    } else {
+      window.prompt("Copy your link:", link);
+    }
+  } catch (error) {
+    window.prompt("Copy your link:", link);
+  }
+}
+
+// RECIPIENT MODE
+
+if (question) {
+  setupScreen.style.display = "none";
+  questionScreen.style.display = "block";
+
+  document.getElementById("questionText").textContent = question;
+
+  document.getElementById("sender").textContent = sender
+    ? "A little question from " + sender + " 💌"
+    : "Someone has a question for you 💌";
+
+  // Wait until the question screen has been laid out,
+  // then place NO precisely in the centre of its safe zone.
+  requestAnimationFrame(resetNoButtonPosition);
+}
+
+// NO BUTTON POSITIONING
+
+function getSafeBounds() {
+  const zoneWidth = noZone.clientWidth;
+  const zoneHeight = noZone.clientHeight;
+  const buttonWidth = noBtn.offsetWidth;
+  const buttonHeight = noBtn.offsetHeight;
+
+  const padding = 4;
+
+  return {
+    minX: padding,
+    minY: padding,
+    maxX: Math.max(padding, zoneWidth - buttonWidth - padding),
+    maxY: Math.max(padding, zoneHeight - buttonHeight - padding)
+  };
+}
+
+function resetNoButtonPosition() {
+  if (!noZone.clientWidth || !noZone.clientHeight) return;
+
+  const bounds = getSafeBounds();
+
+  const x = (bounds.minX + bounds.maxX) / 2;
+  const y = (bounds.minY + bounds.maxY) / 2;
+
+  noBtn.style.transform = "none";
+  noBtn.style.left = x + "px";
+  noBtn.style.top = y + "px";
+}
+
+function dodgeNo() {
+  // Update the message on every click.
+  bubble.textContent =
+    messages[Math.min(clickCount, messages.length - 1)];
+
+  clickCount++;
+
+  // Ensure the button is measured after its initial layout.
+  if (!noButtonMoved) {
+    noBtn.style.transform = "none";
+    noButtonMoved = true;
+  }
+
+  const bounds = getSafeBounds();
+
+  // Generate a new position only within the NO zone.
+  const rangeX = Math.max(0, bounds.maxX - bounds.minX);
+  const rangeY = Math.max(0, bounds.maxY - bounds.minY);
+
+  const newX = bounds.minX + Math.random() * rangeX;
+  const newY = bounds.minY + Math.random() * rangeY;
+
+  noBtn.style.left = newX + "px";
+  noBtn.style.top = newY + "px";
+}
+
+// Keep NO inside its safe area if the phone rotates or viewport changes.
+let resizeFrame = null;
+
+window.addEventListener("resize", () => {
+  if (!question || questionScreen.style.display === "none") return;
+
+  cancelAnimationFrame(resizeFrame);
+
+  resizeFrame = requestAnimationFrame(() => {
+    const bounds = getSafeBounds();
+
+    if (!noButtonMoved) {
+      resetNoButtonPosition();
+      return;
+    }
+
+    const currentX = parseFloat(noBtn.style.left) || bounds.minX;
+    const currentY = parseFloat(noBtn.style.top) || bounds.minY;
+
+    noBtn.style.left =
+      Math.min(bounds.maxX, Math.max(bounds.minX, currentX)) + "px";
+
+    noBtn.style.top =
+      Math.min(bounds.maxY, Math.max(bounds.minY, currentY)) + "px";
+  });
+});
+
+// YES BUTTON
+
+function sayYes() {
+  questionScreen.style.display = "none";
+  successScreen.style.display = "block";
+}
+
+// FLOATING HEARTS
+
+function createHeart() {
+  const heart = document.createElement("div");
+
+  heart.className = "heart";
+  heart.textContent = [
+    "💗",
+    "💕",
+    "✨",
+    "💖"
+  ][Math.floor(Math.random() * 4)];
+
+  heart.style.left = Math.random() * 100 + "vw";
+  heart.style.animationDuration = (5 + Math.random() * 5) + "s";
+
+  document.body.appendChild(heart);
+
+  setTimeout(() => heart.remove(), 10000);
+}
+
+setInterval(createHeart, 700);
+</script>
+
+</body>
+</html>
