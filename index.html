@@ -125,11 +125,6 @@ button {
   overflow-wrap: anywhere;
 }
 
-/*
-  The button area is split into two safe zones:
-  YES stays in the left zone.
-  NO can move only inside the right zone.
-*/
 .buttons {
   display: grid;
   grid-template-columns: 1fr 1fr;
@@ -214,8 +209,7 @@ button {
     gap: 6px;
   }
 
-  #yesBtn,
-  #noBtn {
+  #yesBtn, #noBtn {
     padding: 12px 15px;
     font-size: 14px;
   }
@@ -242,7 +236,6 @@ button {
 
 <div class="card" id="mainCard">
 
-  <!-- CREATOR SCREEN -->
   <section id="setupScreen">
 
     <h1>Make a little surprise 💗</h1>
@@ -252,7 +245,6 @@ button {
     <input
       id="senderInput"
       placeholder="Your name (optional)"
-      autocomplete="name"
     >
 
     <input
@@ -279,7 +271,6 @@ button {
 
   </section>
 
-  <!-- QUESTION SCREEN -->
   <section id="questionScreen">
 
     <div id="sender"></div>
@@ -290,7 +281,7 @@ button {
 
     <div id="messageBubble" aria-live="polite"></div>
 
-    <div class="buttons" id="buttonArea">
+    <div class="buttons">
 
       <div class="yes-zone">
         <button id="yesBtn" onclick="sayYes()">
@@ -308,7 +299,6 @@ button {
 
   </section>
 
-  <!-- SUCCESS SCREEN -->
   <section id="successScreen">
 
     <h1>Thanks KHUSHI! 💗</h1>
@@ -326,18 +316,92 @@ button {
 <script>
 "use strict";
 
-const params = new URLSearchParams(window.location.search);
+// ENCODE AND DECODE SHARE DATA
 
-const question = params.get("q");
-const sender = params.get("from");
+function encodeShareData(data) {
 
-const setupScreen = document.getElementById("setupScreen");
-const questionScreen = document.getElementById("questionScreen");
-const successScreen = document.getElementById("successScreen");
+  const bytes = new TextEncoder().encode(
+    JSON.stringify(data)
+  );
 
-const noBtn = document.getElementById("noBtn");
-const noZone = document.getElementById("noZone");
-const bubble = document.getElementById("messageBubble");
+  let binary = "";
+
+  bytes.forEach(byte => {
+    binary += String.fromCharCode(byte);
+  });
+
+  return btoa(binary)
+    .replace(/\+/g, "-")
+    .replace(/\//g, "_")
+    .replace(/=+$/g, "");
+}
+
+function decodeShareData(encoded) {
+
+  try {
+
+    const base64 = encoded
+      .replace(/-/g, "+")
+      .replace(/_/g, "/");
+
+    const padded = base64 +
+      "=".repeat((4 - base64.length % 4) % 4);
+
+    const binary = atob(padded);
+
+    const bytes = Uint8Array.from(
+      binary,
+      char => char.charCodeAt(0)
+    );
+
+    return JSON.parse(
+      new TextDecoder().decode(bytes)
+    );
+
+  } catch (error) {
+    return null;
+  }
+}
+
+// READ SHARE LINK
+
+const hashMatch = window.location.hash.match(/^#s=(.+)$/);
+
+const hiddenData = hashMatch
+  ? decodeShareData(hashMatch[1])
+  : null;
+
+// Old links remain compatible
+
+const oldParams = new URLSearchParams(
+  window.location.search
+);
+
+const question =
+  hiddenData?.q || oldParams.get("q");
+
+const sender =
+  hiddenData?.from || oldParams.get("from");
+
+// ELEMENTS
+
+const setupScreen =
+  document.getElementById("setupScreen");
+
+const questionScreen =
+  document.getElementById("questionScreen");
+
+const successScreen =
+  document.getElementById("successScreen");
+
+const noBtn =
+  document.getElementById("noBtn");
+
+const noZone =
+  document.getElementById("noZone");
+
+const bubble =
+  document.getElementById("messageBubble");
 
 let clickCount = 0;
 let noButtonMoved = false;
@@ -353,11 +417,17 @@ const messages = [
   "Ab toh maan jao! 😭"
 ];
 
-// CREATOR MODE
+// CREATE SHARE LINK
 
 function createShareLink() {
-  const q = document.getElementById("questionInput").value.trim();
-  const from = document.getElementById("senderInput").value.trim();
+
+  const q = document
+    .getElementById("questionInput")
+    .value.trim();
+
+  const from = document
+    .getElementById("senderInput")
+    .value.trim();
 
   if (!q) {
     alert("Pehle apna question likho! 💗");
@@ -365,150 +435,224 @@ function createShareLink() {
   }
 
   const url = new URL(
-    window.location.origin + window.location.pathname
+    window.location.origin +
+    window.location.pathname
   );
 
-  url.searchParams.set("q", q);
+  const payload = encodeShareData({
+    q: q,
+    from: from
+  });
 
-  if (from) {
-    url.searchParams.set("from", from);
-  }
+  url.hash = "s=" + payload;
 
-  document.getElementById("shareLink").textContent = url.href;
-  document.getElementById("shareBox").style.display = "block";
+  document.getElementById("shareLink").textContent =
+    url.href;
+
+  document.getElementById("shareBox").style.display =
+    "block";
 }
 
 // COPY LINK
 
 async function copyLink() {
-  const link = document.getElementById("shareLink").textContent;
+
+  const link = document
+    .getElementById("shareLink")
+    .textContent;
 
   try {
+
     if (navigator.clipboard && window.isSecureContext) {
+
       await navigator.clipboard.writeText(link);
+
       alert("Link copied! 💗");
+
     } else {
+
       window.prompt("Copy your link:", link);
+
     }
+
   } catch (error) {
+
     window.prompt("Copy your link:", link);
+
   }
 }
 
 // RECIPIENT MODE
 
 if (question) {
+
   setupScreen.style.display = "none";
+
   questionScreen.style.display = "block";
 
-  document.getElementById("questionText").textContent = question;
+  document.getElementById("questionText").textContent =
+    question;
 
-  document.getElementById("sender").textContent = sender
-    ? "A little question from " + sender + " 💌"
-    : "Someone has a question for you 💌";
+  document.getElementById("sender").textContent =
+    sender
+      ? "A little question from " + sender + " 💌"
+      : "Someone has a question for you 💌";
 
-  // Wait until the question screen has been laid out,
-  // then place NO precisely in the centre of its safe zone.
   requestAnimationFrame(resetNoButtonPosition);
+
 }
 
-// NO BUTTON POSITIONING
+// NO BUTTON SAFE MOVEMENT
 
 function getSafeBounds() {
+
   const zoneWidth = noZone.clientWidth;
   const zoneHeight = noZone.clientHeight;
+
   const buttonWidth = noBtn.offsetWidth;
   const buttonHeight = noBtn.offsetHeight;
 
   const padding = 4;
 
   return {
+
     minX: padding,
     minY: padding,
-    maxX: Math.max(padding, zoneWidth - buttonWidth - padding),
-    maxY: Math.max(padding, zoneHeight - buttonHeight - padding)
+
+    maxX: Math.max(
+      padding,
+      zoneWidth - buttonWidth - padding
+    ),
+
+    maxY: Math.max(
+      padding,
+      zoneHeight - buttonHeight - padding
+    )
+
   };
 }
 
 function resetNoButtonPosition() {
-  if (!noZone.clientWidth || !noZone.clientHeight) return;
+
+  if (!noZone.clientWidth || !noZone.clientHeight) {
+    return;
+  }
 
   const bounds = getSafeBounds();
 
-  const x = (bounds.minX + bounds.maxX) / 2;
-  const y = (bounds.minY + bounds.maxY) / 2;
-
   noBtn.style.transform = "none";
-  noBtn.style.left = x + "px";
-  noBtn.style.top = y + "px";
+
+  noBtn.style.left =
+    ((bounds.minX + bounds.maxX) / 2) + "px";
+
+  noBtn.style.top =
+    ((bounds.minY + bounds.maxY) / 2) + "px";
+
 }
 
 function dodgeNo() {
-  // Update the message on every click.
+
   bubble.textContent =
     messages[Math.min(clickCount, messages.length - 1)];
 
   clickCount++;
 
-  // Ensure the button is measured after its initial layout.
   if (!noButtonMoved) {
+
     noBtn.style.transform = "none";
+
     noButtonMoved = true;
+
   }
 
   const bounds = getSafeBounds();
 
-  // Generate a new position only within the NO zone.
-  const rangeX = Math.max(0, bounds.maxX - bounds.minX);
-  const rangeY = Math.max(0, bounds.maxY - bounds.minY);
+  const rangeX = Math.max(
+    0,
+    bounds.maxX - bounds.minX
+  );
 
-  const newX = bounds.minX + Math.random() * rangeX;
-  const newY = bounds.minY + Math.random() * rangeY;
+  const rangeY = Math.max(
+    0,
+    bounds.maxY - bounds.minY
+  );
+
+  const newX =
+    bounds.minX + Math.random() * rangeX;
+
+  const newY =
+    bounds.minY + Math.random() * rangeY;
 
   noBtn.style.left = newX + "px";
+
   noBtn.style.top = newY + "px";
+
 }
 
-// Keep NO inside its safe area if the phone rotates or viewport changes.
+// HANDLE SCREEN RESIZE
+
 let resizeFrame = null;
 
 window.addEventListener("resize", () => {
-  if (!question || questionScreen.style.display === "none") return;
+
+  if (!question || questionScreen.style.display === "none") {
+    return;
+  }
 
   cancelAnimationFrame(resizeFrame);
 
   resizeFrame = requestAnimationFrame(() => {
+
     const bounds = getSafeBounds();
 
     if (!noButtonMoved) {
+
       resetNoButtonPosition();
+
       return;
+
     }
 
-    const currentX = parseFloat(noBtn.style.left) || bounds.minX;
-    const currentY = parseFloat(noBtn.style.top) || bounds.minY;
+    const currentX =
+      parseFloat(noBtn.style.left) || bounds.minX;
+
+    const currentY =
+      parseFloat(noBtn.style.top) || bounds.minY;
 
     noBtn.style.left =
-      Math.min(bounds.maxX, Math.max(bounds.minX, currentX)) + "px";
+      Math.min(
+        bounds.maxX,
+        Math.max(bounds.minX, currentX)
+      ) + "px";
 
     noBtn.style.top =
-      Math.min(bounds.maxY, Math.max(bounds.minY, currentY)) + "px";
+      Math.min(
+        bounds.maxY,
+        Math.max(bounds.minY, currentY)
+      ) + "px";
+
   });
+
 });
 
 // YES BUTTON
 
 function sayYes() {
+
   questionScreen.style.display = "none";
+
   successScreen.style.display = "block";
+
 }
 
 // FLOATING HEARTS
 
 function createHeart() {
+
   const heart = document.createElement("div");
 
   heart.className = "heart";
+
   heart.textContent = [
     "💗",
     "💕",
@@ -516,15 +660,22 @@ function createHeart() {
     "💖"
   ][Math.floor(Math.random() * 4)];
 
-  heart.style.left = Math.random() * 100 + "vw";
-  heart.style.animationDuration = (5 + Math.random() * 5) + "s";
+  heart.style.left =
+    Math.random() * 100 + "vw";
+
+  heart.style.animationDuration =
+    (5 + Math.random() * 5) + "s";
 
   document.body.appendChild(heart);
 
-  setTimeout(() => heart.remove(), 10000);
+  setTimeout(() => {
+    heart.remove();
+  }, 10000);
+
 }
 
 setInterval(createHeart, 700);
+
 </script>
 
 </body>
